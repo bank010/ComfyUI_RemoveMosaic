@@ -58,17 +58,61 @@ ffprobe -version
 
 ### 4. 下载模型权重
 
-把模型文件放到 `ComfyUI/models/lada/`（首次加载插件时会自动创建该目录）。
-官方权重见 [lada Releases](https://github.com/ladaapp/lada/releases)，常用的有：
+模型权重托管在 Hugging Face：[`ladaapp/lada`](https://huggingface.co/ladaapp/lada/tree/main)。
+全部放到 `ComfyUI/models/lada/`（首次加载插件时会自动创建该目录），节点会自动扫描出现在的文件。
+
+常用文件：
 
 | 类型 | 文件名 | 说明 |
 | --- | --- | --- |
-| 检测 | `lada_mosaic_detection_model_v4_fast.pt` | 推荐，速度快 |
-| 检测 | `lada_mosaic_detection_model_v4_accurate.pt` | 更准但稍慢 |
-| 修复 | `lada_mosaic_restoration_model_generic_v1.2.pth` | 推荐，最新 BasicVSR++ |
-| 修复 | `clean_youknow_video.pth`（放到 `models/lada/3rd_party/`） | 旧的 DeepMosaics 模型 |
+| 检测 | `lada_mosaic_detection_model_v3.1_fast.pt` | 6 MB，速度优先 |
+| 检测 | `lada_mosaic_detection_model_v3.1_accurate.pt` | 20 MB，质量优先 |
+| 检测 | `lada_mosaic_detection_model_v2.pt` | 45 MB，老版本 |
+| 修复 | `lada_mosaic_restoration_model_generic_v1.2.pth` | 78 MB，推荐 |
+| 修复 | `lada_mosaic_restoration_model_generic_v1.2_full.pth` | 287 MB，含判别器 |
+| 修复 | `lada_mosaic_restoration_model_generic_v1.1.pth` | 78 MB，旧版 |
 
-也可以放任意其他 `.pt` / `.pth`，节点会把它们一并列在下拉菜单里。
+> 注：目前 HF 仓库里挂的是 v3.1 系列检测模型，README 里的 v4 是 GitHub Release 上的旧文档命名，按下面的命令下载即可。
+
+#### 一键下载（推荐，二选一）
+
+**方式 A：用 `huggingface-cli`**
+
+```bash
+pip install -U "huggingface_hub[cli]"
+cd /path/to/ComfyUI/models/lada
+huggingface-cli download ladaapp/lada \
+    lada_mosaic_detection_model_v3.1_fast.pt \
+    lada_mosaic_restoration_model_generic_v1.2.pth \
+    --local-dir . --local-dir-use-symlinks False
+```
+
+**方式 B：用 `wget` / `curl`**
+
+```bash
+cd /path/to/ComfyUI/models/lada
+
+# 检测模型（任选一个）
+wget https://huggingface.co/ladaapp/lada/resolve/main/lada_mosaic_detection_model_v3.1_fast.pt
+wget https://huggingface.co/ladaapp/lada/resolve/main/lada_mosaic_detection_model_v3.1_accurate.pt
+
+# 修复模型（推荐这个）
+wget https://huggingface.co/ladaapp/lada/resolve/main/lada_mosaic_restoration_model_generic_v1.2.pth
+```
+
+国内/AutoDL 拉不动 HF 时换镜像：把上面所有 `https://huggingface.co` 替换成 `https://hf-mirror.com` 即可，例如：
+
+```bash
+wget https://hf-mirror.com/ladaapp/lada/resolve/main/lada_mosaic_restoration_model_generic_v1.2.pth
+```
+
+或全局设置：
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
+
+放好之后重启 ComfyUI，节点下拉里就能看到这些模型。也可以放任意其他 `.pt` / `.pth`（包括旧的 DeepMosaics `clean_youknow_video.pth`），节点会自动把它们都列出来。
 
 ## 工作流示例
 
