@@ -24,6 +24,37 @@ import torch
 logger = logging.getLogger("ComfyUI_RemoveMosaic")
 
 
+class _AllowFullCheckpointLoad:
+    """Context manager that defaults ``torch.load`` to ``weights_only=False``.
+
+    PyTorch 2.6 flipped the default of ``torch.load(weights_only=...)`` from
+    ``False`` to ``True`` for security reasons. lada's full ``.pth`` checkpoints
+    contain mmengine training metadata (``HistoryBuffer``, optimizer state, etc.)
+    that aren't on the safe-globals allowlist, so loading them under the new
+    default raises ``WeightsUnpickler error``.
+
+    Lada / mmengine internally call ``torch.load`` without passing the flag, so
+    the only clean way to fix this without monkey-patching the vendored lada
+    source is to override ``torch.load`` for the duration of the load call.
+    Users download these files from the official ``ladaapp/lada`` Hugging Face
+    repo, which is the same trust boundary as the vendored model code itself.
+    """
+
+    def __enter__(self):
+        self._orig_load = torch.load
+
+        def _patched_load(*args, **kwargs):
+            kwargs.setdefault("weights_only", False)
+            return self._orig_load(*args, **kwargs)
+
+        torch.load = _patched_load  # type: ignore[assignment]
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        torch.load = self._orig_load  # type: ignore[assignment]
+        return False
+
+
 def _ensure_ffmpeg_binaries() -> None:
     """Make sure ``ffmpeg`` and ``ffprobe`` are available on PATH.
 
@@ -243,15 +274,16 @@ def load_detection_model(
 
     classes: Optional[List[int]] = None if detect_face_mosaics else [0]
 
-    yolo_model = Yolo11SegmentationModel(
-        path,
-        torch_device,
-        imgsz=int(imgsz),
-        classes=classes,
-        conf=float(conf),
-        iou=float(iou),
-        fp16=use_fp16,
-    )
+    with _AllowFullCheckpointLoad():
+        yolo_model = Yolo11SegmentationModel(
+            path,
+            torch_device,
+            imgsz=int(imgsz),
+            classes=classes,
+            conf=float(conf),
+            iou=float(iou),
+            fp16=use_fp16,
+        )
     return LadaDetectionModel(
         model=yolo_model,
         name=display_name,
@@ -272,7 +304,8 @@ def load_restoration_model(name: str, device: str = "auto", fp16: str = "auto") 
         from lada.models.basicvsrpp.inference import load_model as _load_basicvsrpp  # type: ignore
         from lada.restorationpipeline.basicvsrpp_mosaic_restorer import BasicvsrppMosaicRestorer  # type: ignore
 
-        net = _load_basicvsrpp(None, path, torch_device, use_fp16)
+        with _AllowFullCheckpointLoad():
+            net = _load_basicvsrpp(None, path, torch_device, use_fp16)
         restorer = BasicvsrppMosaicRestorer(net, torch_device, use_fp16)
         pad_mode = "zero"
         # 'basicvsrpp-v1.2' style name is required by FrameRestorer to dispatch to the right code path.
@@ -281,7 +314,8 @@ def load_restoration_model(name: str, device: str = "auto", fp16: str = "auto") 
         from lada.models.deepmosaics.models import loadmodel as deepmosaics_loadmodel  # type: ignore
         from lada.restorationpipeline.deepmosaics_mosaic_restorer import DeepmosaicsMosaicRestorer  # type: ignore
 
-        net = deepmosaics_loadmodel.video(torch_device, path, use_fp16)
+        with _AllowFullCheckpointLoad():
+            net = deepmosaics_loadmodel.video(torch_device, path, use_fp16)
         restorer = DeepmosaicsMosaicRestorer(net, torch_device)
         pad_mode = "reflect"
         full_name = display_name if display_name.startswith("deepmosaics") else f"deepmosaics-{display_name}"
