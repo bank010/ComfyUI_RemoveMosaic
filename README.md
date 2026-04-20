@@ -116,16 +116,24 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 ## 工作流示例
 
+`workflows/` 目录提供两个开箱即用的工作流：
+
+- **`workflows/remove_mosaic_basic.json`** — 直接拖进 ComfyUI 网页即可用，已经接好 `VHS_LoadVideo` → `LadaRemoveMosaic` → `VHS_VideoCombine`，并且把原视频音轨一起保留。
+- **`workflows/remove_mosaic_api.json`** — API 紧凑格式，给后端 / 脚本调用 `/prompt` 接口用。
+
+依赖的额外节点：[`ComfyUI-VideoHelperSuite`](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite)（`VHS_LoadVideo` / `VHS_VideoCombine`），用 ComfyUI Manager 搜 `VideoHelperSuite` 一键装。
+
+数据流：
+
 ```
-LoadVideo ─►─┐
-             ├─► Remove Mosaic (Lada) ─► VideoCombine
-LoadDet  ─►─┤
-             │
-LoadRest ─►─┘
+VHS_LoadVideo ──IMAGE─────────┐
+                              ├─► LadaRemoveMosaic ─IMAGE─► VHS_VideoCombine ─► output/*.mp4
+LadaLoadDetectionModel ──────►│                                  ▲
+LadaLoadRestorationModel ────►│                                  │
+VHS_LoadVideo ──AUDIO─────────────────────────────────────────────┘ (保留原音轨)
 ```
 
-- `LoadVideo` 输出 IMAGE 批次连到 `Remove Mosaic` 的 `images` 输入。
-- 两个 Load 节点输出的模型分别接 `detection_model` / `restoration_model`。
+详细说明见 [`workflows/README.md`](workflows/README.md)。
 - `fps` 建议填实际帧率（影响时序窗口），`max_clip_length` 控制每次喂给
   BasicVSR++ 的最大帧数（显存不够调小，时序闪烁严重就调大）。
 
