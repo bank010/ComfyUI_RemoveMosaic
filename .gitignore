@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.DS_Store
+.idea/
+.vscode/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+*.log
+
+# model weights are downloaded by users into ComfyUI/models/lada/
+*.pt
+*.pth
+*.safetensors
+
+# temp video files lada may create during runs
+lada_comfy_*/

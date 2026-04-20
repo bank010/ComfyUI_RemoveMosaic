@@ -1,0 +1,18 @@
+# ComfyUI_RemoveMosaic dependencies.
+#
+# The lada source code is vendored inside this plugin (lada/ subdirectory),
+# so you do NOT need to `pip install lada`. You only need the underlying
+# scientific packages it relies on.
+#
+# Versions follow lada's own pyproject.toml as closely as possible so the
+# vendored code keeps working unchanged.
+
+torch>=2.1
+torchvision>=0.16
+numpy
+opencv-python>=4.8.0
+av>=16.1.0
+mmengine==0.10.7
+ultralytics==8.4.4
+tqdm
+wcwidth
