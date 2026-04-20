@@ -2,19 +2,24 @@
 """下载 lada 模型权重到 ComfyUI/models/lada/。
 
 用法：
-    # 1. 默认（自动定位 ComfyUI/models/lada，下载推荐的两个模型）
+    # 1. 默认（最高质量组合，约 332 MB；不考虑速度，要最好的效果）
+    #    检测: lada_mosaic_detection_model_v4_accurate.pt    (45 MB)
+    #    修复: lada_mosaic_restoration_model_generic_v1.2_full.pth (287 MB)
     python scripts/download_models.py
 
-    # 2. 指定输出目录
+    # 2. 速度优先组合（约 84 MB）
+    python scripts/download_models.py --preset fast
+
+    # 3. 指定输出目录
     python scripts/download_models.py --dest /root/autodl-tmp/comfyui/models/lada
 
-    # 3. 国内/AutoDL 用 HF 镜像
+    # 4. 国内/AutoDL 用 HF 镜像
     python scripts/download_models.py --mirror
 
-    # 4. 下载全部模型（含 NSFW / 水印检测、v1.2_full 等）
+    # 5. 下载全部模型（含 NSFW / 水印检测等，约 800 MB）
     python scripts/download_models.py --all
 
-    # 5. 自定义文件
+    # 6. 自定义文件
     python scripts/download_models.py --files \\
         lada_mosaic_detection_model_v3.1_accurate.pt \\
         lada_mosaic_restoration_model_generic_v1.2_full.pth
@@ -40,10 +45,24 @@ HF_HOST_OFFICIAL = "https://huggingface.co"
 HF_HOST_MIRROR = "https://hf-mirror.com"
 HF_REPO = "ladaapp/lada"
 
-RECOMMENDED_FILES = [
-    "lada_mosaic_detection_model_v3.1_fast.pt",
-    "lada_mosaic_restoration_model_generic_v1.2.pth",
-]
+PRESETS = {
+    # 默认：最高质量，不考虑速度（45 MB + 287 MB ≈ 332 MB）
+    "best": [
+        "lada_mosaic_detection_model_v4_accurate.pt",
+        "lada_mosaic_restoration_model_generic_v1.2_full.pth",
+    ],
+    # 平衡：精度优先但更省体积（20 MB + 78 MB ≈ 98 MB）
+    "balanced": [
+        "lada_mosaic_detection_model_v3.1_accurate.pt",
+        "lada_mosaic_restoration_model_generic_v1.2.pth",
+    ],
+    # 速度优先：最小体积（6 MB + 78 MB ≈ 84 MB）
+    "fast": [
+        "lada_mosaic_detection_model_v3.1_fast.pt",
+        "lada_mosaic_restoration_model_generic_v1.2.pth",
+    ],
+}
+DEFAULT_PRESET = "best"
 
 ALL_FILES = [
     "lada_mosaic_detection_model_v2.pt",
@@ -200,6 +219,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=f"自定义 HF 镜像地址（覆盖 --mirror，例如 {HF_HOST_MIRROR}）",
     )
     parser.add_argument(
+        "--preset",
+        choices=list(PRESETS.keys()),
+        default=DEFAULT_PRESET,
+        help=(
+            "选择模型组合：\n"
+            "  best     (默认) 最高质量，不考虑速度，约 332 MB\n"
+            "  balanced 精度优先但更小，约 98 MB\n"
+            "  fast     速度优先，约 84 MB"
+        ),
+    )
+    parser.add_argument(
         "--all",
         action="store_true",
         help="下载全部模型（含 NSFW/水印/full 等，约 800 MB）",
@@ -208,7 +238,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--files",
         nargs="+",
         default=None,
-        help="只下载指定文件名（覆盖 --all）",
+        help="只下载指定文件名（覆盖 --preset / --all）",
     )
     parser.add_argument(
         "--overwrite",
@@ -223,10 +253,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.list:
-        print("# 推荐组合 (默认下载)：")
-        for f in RECOMMENDED_FILES:
-            print(f"  - {f}")
-        print("\n# 全部可选：")
+        for name, items in PRESETS.items():
+            tag = " (默认)" if name == DEFAULT_PRESET else ""
+            print(f"# preset: {name}{tag}")
+            for f in items:
+                print(f"  - {f}")
+            print()
+        print("# 全部可选：")
         for f in ALL_FILES:
             print(f"  - {f}")
         return 0
@@ -238,7 +271,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     elif args.all:
         files = list(ALL_FILES)
     else:
-        files = list(RECOMMENDED_FILES)
+        files = list(PRESETS[args.preset])
 
     dest = (args.dest or detect_default_dest()).expanduser().resolve()
     dest.mkdir(parents=True, exist_ok=True)

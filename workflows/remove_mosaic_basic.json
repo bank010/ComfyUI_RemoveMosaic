@@ -47,7 +47,7 @@
       ],
       "properties": { "Node name for S&R": "LadaLoadDetectionModel" },
       "widgets_values": [
-        "lada_mosaic_detection_model_v3.1_fast.pt",
+        "lada_mosaic_detection_model_v4_accurate.pt",
         "auto",
         "auto"
       ]
@@ -66,7 +66,7 @@
       ],
       "properties": { "Node name for S&R": "LadaLoadRestorationModel" },
       "widgets_values": [
-        "lada_mosaic_restoration_model_generic_v1.2.pth",
+        "lada_mosaic_restoration_model_generic_v1.2_full.pth",
         "auto",
         "auto"
       ]

@@ -15,7 +15,7 @@
   "2": {
     "class_type": "LadaLoadDetectionModel",
     "inputs": {
-      "model_name": "lada_mosaic_detection_model_v3.1_fast.pt",
+      "model_name": "lada_mosaic_detection_model_v4_accurate.pt",
       "device": "auto",
       "fp16": "auto"
     }
@@ -23,7 +23,7 @@
   "3": {
     "class_type": "LadaLoadRestorationModel",
     "inputs": {
-      "model_name": "lada_mosaic_restoration_model_generic_v1.2.pth",
+      "model_name": "lada_mosaic_restoration_model_generic_v1.2_full.pth",
       "device": "auto",
       "fp16": "auto"
     }

@@ -80,12 +80,31 @@ ffprobe -version
 
 ```bash
 cd /path/to/ComfyUI/custom_nodes/ComfyUI_RemoveMosaic
-python scripts/download_models.py             # 下载推荐的两个模型
-python scripts/download_models.py --mirror    # 国内/AutoDL 用 hf-mirror
-python scripts/download_models.py --all       # 下载全部模型（约 800 MB）
-python scripts/download_models.py --list      # 只列出文件，不下载
-python scripts/download_models.py --files lada_mosaic_detection_model_v3.1_accurate.pt
+
+# 默认 = best preset（最高质量，约 332 MB），不考虑速度只要效果
+python scripts/download_models.py
+
+# 国内/AutoDL 走 hf-mirror
+python scripts/download_models.py --mirror
+
+# 想要更小/更快的预设
+python scripts/download_models.py --preset balanced   # 约 98 MB
+python scripts/download_models.py --preset fast       # 约 84 MB
+
+# 全套（含 NSFW/水印检测，约 800 MB）
+python scripts/download_models.py --all
+
+# 列出所有可选文件
+python scripts/download_models.py --list
 ```
+
+预设说明：
+
+| preset | 检测模型 | 修复模型 | 总大小 |
+| --- | --- | --- | --- |
+| `best`（**默认，推荐**） | `..._v4_accurate.pt` (45 MB) | `..._v1.2_full.pth` (287 MB) | ~332 MB |
+| `balanced` | `..._v3.1_accurate.pt` (20 MB) | `..._v1.2.pth` (78 MB) | ~98 MB |
+| `fast` | `..._v3.1_fast.pt` (6 MB) | `..._v1.2.pth` (78 MB) | ~84 MB |
 
 脚本会自动定位 `ComfyUI/models/lada/`，支持断点续传（中断后再跑会自动续）。
 
