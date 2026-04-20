@@ -24,6 +24,28 @@ import torch
 logger = logging.getLogger("ComfyUI_RemoveMosaic")
 
 
+def _ensure_ffmpeg_binaries() -> None:
+    """Make sure ``ffmpeg`` and ``ffprobe`` are available on PATH.
+
+    Lada's pipeline shells out to both binaries via ``subprocess`` (e.g. for
+    ``video_utils.get_video_meta_data``). When they are missing the failure
+    happens deep inside the worker threads and the resulting ``FileNotFoundError``
+    isn't very helpful, so we surface a clear hint here instead.
+    """
+    missing = [b for b in ("ffmpeg", "ffprobe") if shutil.which(b) is None]
+    if not missing:
+        return
+    raise RuntimeError(
+        "ComfyUI_RemoveMosaic requires {missing} on PATH but could not find "
+        "{count}. Install ffmpeg and try again:\n"
+        "  - apt:   apt update && apt install -y ffmpeg\n"
+        "  - conda: conda install -y -c conda-forge ffmpeg\n"
+        "  - macOS: brew install ffmpeg\n"
+        "  - Win:   choco install ffmpeg  (or download from ffmpeg.org and add to PATH)"
+        .format(missing=", ".join(missing), count="them" if len(missing) > 1 else "it")
+    )
+
+
 # ---------------------------------------------------------------------------
 # Lazy lada import ----------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -321,6 +343,7 @@ def restore_image_batch(
 ) -> torch.Tensor:
     """Run the full lada detection + restoration pipeline on a frame batch."""
     _import_lada()
+    _ensure_ffmpeg_binaries()
     from lada.restorationpipeline.frame_restorer import FrameRestorer  # type: ignore
     from lada.utils.threading_utils import STOP_MARKER, ErrorMarker  # type: ignore
 
