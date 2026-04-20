@@ -51,6 +51,10 @@ class LadaLoadDetectionModel:
 
     Drops a list of all ``.pt`` files (and the well-known names like
     ``v4-fast``) found in ``ComfyUI/models/lada/``.
+
+    Tuning knobs (when "马赛克漏检"):
+      - lower ``conf`` (0.05~0.10) → 抓更多弱检测（也会多假阳性）
+      - raise ``imgsz`` to 1024/1280 → 1080p+ 视频里小马赛克更不容易丢
     """
 
     @classmethod
@@ -60,7 +64,29 @@ class LadaLoadDetectionModel:
                 "model_name": (_safe_list(list_detection_files, _NO_MODEL_LABEL),),
                 "device": (DEVICE_OPTIONS, {"default": "auto"}),
                 "fp16": (FP16_OPTIONS, {"default": "auto"}),
-            }
+            },
+            "optional": {
+                "conf": (
+                    "FLOAT",
+                    {"default": 0.15, "min": 0.01, "max": 0.95, "step": 0.01,
+                     "tooltip": "YOLO 置信度阈值；越低抓得越多。lada 默认 0.15，漏检多就调到 0.05~0.10。"},
+                ),
+                "imgsz": (
+                    "INT",
+                    {"default": 640, "min": 320, "max": 2048, "step": 32,
+                     "tooltip": "YOLO 检测分辨率（必须是 32 的倍数）。1080p+ 视频建议 1024 或 1280，能显著提升小马赛克检出。"},
+                ),
+                "iou": (
+                    "FLOAT",
+                    {"default": 0.7, "min": 0.1, "max": 0.95, "step": 0.05,
+                     "tooltip": "NMS 的 IoU 阈值，一般不动。"},
+                ),
+                "detect_face_mosaics": (
+                    "BOOLEAN",
+                    {"default": True,
+                     "tooltip": "是否也修复脸部/头部打码（class id=1）。关掉只处理 NSFW 类马赛克。"},
+                ),
+            },
         }
 
     RETURN_TYPES = ("LADA_DETECTION_MODEL",)
@@ -68,13 +94,34 @@ class LadaLoadDetectionModel:
     FUNCTION = "load"
     CATEGORY = CATEGORY
 
-    def load(self, model_name: str, device: str, fp16: str):
+    def load(
+        self,
+        model_name: str,
+        device: str,
+        fp16: str,
+        conf: float = 0.15,
+        imgsz: int = 640,
+        iou: float = 0.7,
+        detect_face_mosaics: bool = True,
+    ):
         if model_name.startswith("<"):
             raise RuntimeError(
                 "No detection model found. Place a YOLOv11 `.pt` file under "
-                "ComfyUI/models/lada/ (e.g. lada_mosaic_detection_model_v4_fast.pt)."
+                "ComfyUI/models/lada/ (e.g. lada_mosaic_detection_model_v4_accurate.pt)."
             )
-        return (load_detection_model(model_name, device=device, fp16=fp16),)
+        if int(imgsz) % 32 != 0:
+            raise ValueError(f"imgsz must be a multiple of 32, got {imgsz}.")
+        return (
+            load_detection_model(
+                model_name,
+                device=device,
+                fp16=fp16,
+                conf=float(conf),
+                imgsz=int(imgsz),
+                iou=float(iou),
+                detect_face_mosaics=bool(detect_face_mosaics),
+            ),
+        )
 
 
 # ---------------------------------------------------------------------------

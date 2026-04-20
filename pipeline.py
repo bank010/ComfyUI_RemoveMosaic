@@ -214,14 +214,44 @@ def _resolve_restoration_path(name: str) -> tuple[str, str, str]:
 # Model loaders -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-def load_detection_model(name: str, device: str = "auto", fp16: str = "auto") -> LadaDetectionModel:
+def load_detection_model(
+    name: str,
+    device: str = "auto",
+    fp16: str = "auto",
+    conf: float = 0.15,
+    imgsz: int = 640,
+    iou: float = 0.7,
+    detect_face_mosaics: bool = True,
+) -> LadaDetectionModel:
+    """Load a YOLOv11 segmentation model with tunable detection thresholds.
+
+    Args:
+        conf: confidence threshold; lower = catch more (and more false positives).
+            Lada upstream default is 0.15. Try 0.05~0.10 if mosaics are missed.
+        imgsz: YOLO inference resolution (multiple of 32). Default 640. Bumping to
+            1024/1280 dramatically helps detect small mosaics in 1080p+ video.
+        iou: NMS IoU threshold (default 0.7).
+        detect_face_mosaics: whether to also restore SFW face/head mosaics
+            (class id 1). When False only "nsfw" mosaics (class id 0) are kept.
+    """
     _import_lada()
     from lada.models.yolo.yolo11_segmentation_model import Yolo11SegmentationModel  # type: ignore
 
     display_name, path = _resolve_detection_path(name)
     torch_device = resolve_device(device)
     use_fp16 = resolve_fp16(fp16, torch_device)
-    yolo_model = Yolo11SegmentationModel(path, torch_device, classes=None, conf=0.15, fp16=use_fp16)
+
+    classes: Optional[List[int]] = None if detect_face_mosaics else [0]
+
+    yolo_model = Yolo11SegmentationModel(
+        path,
+        torch_device,
+        imgsz=int(imgsz),
+        classes=classes,
+        conf=float(conf),
+        iou=float(iou),
+        fp16=use_fp16,
+    )
     return LadaDetectionModel(
         model=yolo_model,
         name=display_name,
