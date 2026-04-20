@@ -74,7 +74,20 @@ ffprobe -version
 
 > 注：目前 HF 仓库里挂的是 v3.1 系列检测模型，README 里的 v4 是 GitHub Release 上的旧文档命名，按下面的命令下载即可。
 
-#### 一键下载（推荐，二选一）
+#### 一键下载（推荐，三选一）
+
+**方式 0：用本仓库自带脚本（零依赖，断点续传）**
+
+```bash
+cd /path/to/ComfyUI/custom_nodes/ComfyUI_RemoveMosaic
+python scripts/download_models.py             # 下载推荐的两个模型
+python scripts/download_models.py --mirror    # 国内/AutoDL 用 hf-mirror
+python scripts/download_models.py --all       # 下载全部模型（约 800 MB）
+python scripts/download_models.py --list      # 只列出文件，不下载
+python scripts/download_models.py --files lada_mosaic_detection_model_v3.1_accurate.pt
+```
+
+脚本会自动定位 `ComfyUI/models/lada/`，支持断点续传（中断后再跑会自动续）。
 
 **方式 A：用 `huggingface-cli`**
 
